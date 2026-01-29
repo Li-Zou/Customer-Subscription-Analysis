@@ -1,0 +1,10 @@
+pandas
+chardet
+numpy
+python-dateutil
+CurrencyConverter
+scikit-learn
+imblearn
+seaborn
+dvc
+-e .

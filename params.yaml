@@ -1,0 +1,7 @@
+data_ingestion:
+  test_size: 0.20
+
+model_building:  
+  knn: [2, 4, 6, 8, 10]
+  LR_C: [1, 0.1, 0.01, 0.001, 0.0001]
+  RF_n_estimators: [100, 200]

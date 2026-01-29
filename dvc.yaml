@@ -1,0 +1,31 @@
+stages:
+  preprocessing:
+    cmd: python src/data_ingestion.py
+    deps:
+      - data/sample_data.csv
+      - src/data_ingestion.py
+    outs:
+      - data/raw/train.csv
+      - data/raw/test.csv
+  
+  models:
+    cmd: python src/models.py
+    deps:
+      - data/raw/train.csv
+      - data/raw/test.csv
+      - src/models.py
+    outs:
+      - outputs/KNN_model.pkl
+      - outputs/LR_model.pkl
+      - outputs/RF_model.pkl
+      - outputs/prediction_acc.csv
+
+  ABtest:
+    cmd: python src/ABtest.py
+    deps:
+      - data/raw/train.csv
+      - src/ABtest.py
+    outs:
+      - outputs/AB_test_result.csv
+
+
