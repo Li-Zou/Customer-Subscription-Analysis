@@ -1,6 +1,6 @@
 # Retention & Uplift Optimiser
 
-## 1 — Business Scenario
+## 1. Business Scenario
 
 A company runs a monthly subscription business and wants to take a proactive, 
 test-and-learn approach to predicting churn and understanding which actions 
@@ -23,11 +23,11 @@ Build a production-grade data science pipeline that:
 3.  **Quantifies incremental impact** of Variant A and Variant B vs Control.
 
 
-## 2 — The Data
+## 2. The Data
 
 **File:** `data/sample_data.csv`
 
-Data come from 2 different main sources, given below as legacy_system_id. Each row 
+Data comes from 2 different main sources, given below as legacy_system_id. Each row 
 represents one subscription at the start of the experiment. 
 This file is a raw legacy export and is **not in an ingest-ready format**. We 
 should assume:
@@ -77,92 +77,124 @@ should assume:
   operational issues (`treatment_sent_flag`)
 
 
+---	
 
 # Process of data analysis
 
 ## Part A — Data Engineering & Pipeline
+
 	(`src/data_ingestion.py`)
-	## 1. Exploratory Data Analysis (EDA)
-	## 2. Cleaning & Standardization
-	## 3. Feature Engineering
-	## 4. Reproducibility
+	* 1. Exploratory Data Analysis (EDA)
+	* 2. Cleaning & Standardization
+	* 3. Feature Engineering
+	* 4. Reproducibility
+	
 1.1.  Check the raw file’s encoding and load it using the corresponding encoding.
+
 1.2.  Some columns contain a mix of uppercase and lowercase letters; convert them all to lowercase
+
 1.3.  Remove missing values
-	  Replace ['unknown','missing'] with np.nan
-	  First, check the proposition of missing value of each feature,
+	  Replace ['unknown', 'missing'] with np.nan
+	  First, check the proportion of missing values of each feature,
 	  and drop any features whose proportion of missing values exceeds a specified threshold (e.g., 0.2).
 	  Second, drop samples that contain at least one missing value.
+	  
 1.4.  Convert different date formats to a given date format, e.g,. '%Y-%m-%d'.
 	  Create a new feature (subscription_month_length)to make use of this date information.
+	  
 1.5.  Replace "," with "." for feature 'add_ons'
+
 1.6.  Convert all currency values to euros for:
 	  'monthly_spend_estimated','offer_cost_eur','historic_revenue_12m','revenue_next_12m_observed'.
+	  
 1.7.  Transform the two formats into a single one for the donation_share_charity feature.
+
 1.8.  Remove the '+' from the web_sessions_90d_raw feature; 
-	  to be honest, I don't fully understand what the '+' indicates
+	  
 1.9.  Remove outliers for 'service_contacts_12m'.
+
 1.10.  Map {'true', 'y', '1', 'yes'} to 1, and {'false', 'f', '0', 'no'} to 0 for:
 	  'treatment_sent_flag', 'churned'
+	  
 1.11. Replace "_" with " " for feature 'baseline_churn_risk_band'
+
 1.12. Change str datatype to int for:
 	  'participant_age','web_sessions_90d_raw'.
+	  
 1.13. Further feature engineering	
 	    '''Only consider 3 situations: 
         'campaign_cohort'='Control' and 'treatment_sent_flag'=0;
         'campaign_cohort'='Variant_A' and 'treatment_sent_flag'=1;
         'campaign_cohort'='Variant_B' and 'treatment_sent_flag'=1;'''	
-		Remove features: 'legacy_system_id','subscription_date','postcode_area','observation_end_date'	  
+		Remove features: 'legacy_system_id','subscription_date','postcode_area','observation_end_date'	 
+		
 1.14. Examine the distribution of features with numeric values
+
 1.15. Save the cleaned data to train.csv and test.csv
+
 ---	  
 
 ## Part B — Predictive Modeling 
 (`src/models.py`)
 	### 1. Churn Propensity Model
+	
 1.1. The models used to predict `churned`:
 	 KNN, LogisticRegression, RandomForestClassifier
-1.2. The features not condidered:
+	 
+1.2. The features not considered:
 	 'customer_id','subscription_id','campaign_cohort','treatment_sent_flag','revenue_next_12m_observed'
+	 
 1.3. Perform encoding on categorical variables
-	 Label encodling for ordinal data: 'baseline_churn_risk_band'
-	 One hot encoding for nominal data: 'marketing_channel','country_code'
+	 Label encoding for ordinal data: 'baseline_churn_risk_band'
+	 One hot encoding for nominal data: 'marketing_channel', 'country_code'
+	 
 1.4. Handle imbalanced data by oversampling (in the training set)
+
 1.5. Standardize features
-1.6. Grid search for hyperparameter tunning, (5 folds cross-validation is used)
+
+1.6. Grid search for hyperparameter tuning, (5-folds cross-validation is used)
+
 1.7. Save the trained models, prediction accuracy (ROC AUC, PR AUC)
-1.8. Explore the fearure importance
 
+1.8. Explore the feature importance
 
+---
 
 ## Part C — Causal & Uplift Analysis 
 (`src/causal.py`)
 	### 1. A/B Test Analysis
+	
 1.1. Check the number of customers in each group: Variant A, Variant B, and Control.
+
 1.2. Check the distribution of 'churned'.
+
 1.3. A two-proportions z-test will be used. 
 	 It's a statistical hypothesis test that determines if there's a significant difference 
 	 between the proportions (percentages) of a binary outcome (yes/no, success/fail) in two independent groups.
+	 
 1.4. Find: 
 	For Variant A vs Control, p-value is 0.0. So the difference between Control and Variant A is significant.
 	For Variant B vs Control, p-value is 0.893. So the difference between Control and Variant B is not significant.
 
 ### 2. Treatment Effect Heterogeneity (Segments)
+
 2.1. Participant_age and baseline_churn_risk_band are used separately to group customers, 
 	 and a two-proportions z-test is then applied within each group.
+	 
 2.2. Find:
 	 Overall, the results show that experiment variant_a is effective in reducing churn. 
 	 Customers aged above 50 appear to benefit more from variant_a than younger customers. 
 	 However, when the legacy rule-based churn risk (baseline_churn_risk_band) is very high, 
 	 variant_a no longer shows a meaningful effect.
 
-
+---
 ## Part D — Engineering & Reproducibility
+
 **Tech Stack:** 
 * Follow good MLOps practices.
 * Make the work easy to rerun from scratch.
 
-**Finall Structure:**
+**Final Structure:**
 * `src/` for Python modules.
 * `notebooks/` for exploratory work.
 * `data/` for input data.
